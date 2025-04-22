@@ -913,7 +913,7 @@ async def check_url(request: Request, call_next):
         elif len(str(query_params[key])) > 50:  # Truncate long values
             query_params[key] = f"{str(query_params[key])[:20]}...{str(query_params[key])[-20:]}"
     
-    log.debug(f"Request: {method} {path} from {client_host} - Query params: {query_params}")
+    log.debug(f"Request: {method} {path} from {client_host} -    Query params: {query_params}")
 
     request.state.enable_api_key = app.state.config.ENABLE_API_KEY
     response = await call_next(request)
