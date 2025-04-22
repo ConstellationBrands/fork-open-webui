@@ -128,6 +128,7 @@ def create_token(data: dict, expires_delta: Union[timedelta, None] = None) -> st
 
 def decode_token(token: str) -> Optional[dict]:
     try:
+        log.debug(f"Decoding token: {token[:10]}... with SECRET: {SESSION_SECRET} and ALGORITHM: {ALGORITHM}")
         decoded = jwt.decode(token, SESSION_SECRET, algorithms=[ALGORITHM])
         return decoded
     except Exception:
