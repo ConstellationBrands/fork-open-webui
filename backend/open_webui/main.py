@@ -899,10 +899,31 @@ async def check_url(request: Request, call_next):
         request.headers.get("Authorization")
     )
 
+    # Log request details before processing
+    path = request.url.path
+    method = request.method
+    client_host = request.client.host if request.client else "unknown"
+    
+    # Filter query params to avoid logging sensitive information
+    query_params = dict(request.query_params)
+    # Remove potentially sensitive or long values
+    for key in list(query_params.keys()):
+        if any(sensitive in key.lower() for sensitive in ["token", "key", "auth", "password", "secret"]):
+            query_params[key] = "[FILTERED]"
+        elif len(str(query_params[key])) > 50:  # Truncate long values
+            query_params[key] = f"{str(query_params[key])[:20]}...{str(query_params[key])[-20:]}"
+    
+    log.debug(f"Request: {method} {path} from {client_host} - Query params: {query_params}")
+
     request.state.enable_api_key = app.state.config.ENABLE_API_KEY
     response = await call_next(request)
     process_time = int(time.time()) - start_time
     response.headers["X-Process-Time"] = str(process_time)
+    
+    # Log response details
+    status_code = response.status_code
+    log.debug(f"Response: {method} {path} - Status: {status_code} - Process time: {process_time}s")
+    
     return response
 
 

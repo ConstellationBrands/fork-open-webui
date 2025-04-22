@@ -384,7 +384,7 @@ async def get_filtered_models(models, user):
     return filtered_models
 
 
-@cached(ttl=1)
+@cached(ttl=1, key_builder=lambda *args, **kwargs: f"open_webui.routers.openai.get_all_models")
 async def get_all_models(request: Request, user: UserModel) -> dict[str, list]:
     log.info("get_all_models()")
 

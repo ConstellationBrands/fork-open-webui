@@ -162,16 +162,21 @@ def get_current_user(
 
     if auth_token is not None:
         token = auth_token.credentials
+        log.debug(f"Token from Authorization header: {token[:10]}...")
 
     if token is None and "token" in request.cookies:
         token = request.cookies.get("token")
+        log.debug(f"Token from cookies: {token[:10]}...")
 
     if token is None:
+        log.debug(f"No token found for request to {request.url.path}")
         raise HTTPException(status_code=403, detail="Not authenticated")
 
     # auth by api key
     if token.startswith("sk-"):
+        log.debug(f"API key authentication attempt for {request.url.path}")
         if not request.state.enable_api_key:
+            log.debug("API key authentication rejected: API keys not enabled")
             raise HTTPException(
                 status.HTTP_403_FORBIDDEN, detail=ERROR_MESSAGES.API_KEY_NOT_ALLOWED
             )
@@ -190,6 +195,7 @@ def get_current_user(
                 or request.url.path.startswith(allowed + "/")
                 for allowed in allowed_paths
             ):
+                log.debug(f"API key not allowed for path: {request.url.path}")
                 raise HTTPException(
                     status.HTTP_403_FORBIDDEN, detail=ERROR_MESSAGES.API_KEY_NOT_ALLOWED
                 )
@@ -198,8 +204,11 @@ def get_current_user(
 
     # auth by jwt token
     try:
+        log.debug(f"Decoding JWT token for {request.url.path}")
         data = decode_token(token)
+        log.debug(f"Decoded token data: {data}")
     except Exception as e:
+        log.debug(f"Token decode error: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
@@ -208,17 +217,20 @@ def get_current_user(
     if data is not None and "id" in data:
         user = Users.get_user_by_id(data["id"])
         if user is None:
+            log.debug(f"User not found for id: {data['id']}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail=ERROR_MESSAGES.INVALID_TOKEN,
             )
         else:
+            log.debug(f"User authenticated: {user.email} (ID: {user.id})")
             # Refresh the user's last active timestamp asynchronously
             # to prevent blocking the request
             if background_tasks:
                 background_tasks.add_task(Users.update_user_last_active_by_id, user.id)
         return user
     else:
+        log.debug(f"Invalid token data: {data}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=ERROR_MESSAGES.UNAUTHORIZED,

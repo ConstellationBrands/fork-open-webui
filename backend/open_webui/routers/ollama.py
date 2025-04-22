@@ -295,7 +295,7 @@ async def update_config(
     }
 
 
-@cached(ttl=1)
+@cached(ttl=1, key_builder=lambda *args, **kwargs: f"open_webui.routers.ollama.get_all_models")
 async def get_all_models(request: Request, user: UserModel = None):
     log.info("get_all_models()")
     if request.app.state.config.ENABLE_OLLAMA_API:
